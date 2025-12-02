@@ -1,5 +1,4 @@
-import { Link } from 'react-router-dom'
-import React, { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 type Service = {
   id: string
@@ -39,7 +38,6 @@ export default function Booking() {
   const [slot, setSlot] = useState('')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
   const [notes, setNotes] = useState('')
   const [status, setStatus] = useState<{ ok: boolean; message: string } | null>(null)
   const [remember, setRemember] = useState(false)
@@ -99,7 +97,6 @@ export default function Booking() {
       return
     }
     setStatus({ ok: true, message: 'Booking confirmed. We will email you with details.' })
-    // Persist to history for premium recommender in future steps
     try {
       const histRaw = localStorage.getItem('bookingHistory')
       const hist: BookingRecord[] = histRaw ? JSON.parse(histRaw) : []
@@ -119,7 +116,7 @@ export default function Booking() {
     <section className="py-12 bg-gradient-to-b from-slate-50 to-white">
       <div className="max-w-4xl mx-auto px-4">
         <h2 className="text-3xl font-extrabold text-gray-800 mb-6">Booking</h2>
-        <div className="grid lg:grid-cols-2 gap-6 items-start">
+        <div className="grid lg:grid-cols-2 gap-6">
           <div className="bg-white/10 border border-white/20 rounded-xl p-6 shadow-md">
             <div className="flex items-center justify-between mb-4">
               <div className="text-sm font-semibold text-gray-700">Step {step} of 4</div>
@@ -129,24 +126,27 @@ export default function Booking() {
                 ))}
               </div>
             </div>
+
             {step === 1 && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Service</label>
-                <select value={service} onChange={(e)=>setService(e.target.value)} className="mt-1 w-full border rounded-md px-3 py-2">
-                  {SERVICES.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name} — ${s.price} • {s.duration}m</option>
-                  ))}
-                </select>
-                <div className="flex items-center gap-4 mt-3">
-                  <label className="inline-flex items-center text-sm text-gray-700 gap-2">
-                    <input type="checkbox" checked={remember} onChange={(e)=>setRemember(e.target.checked)} /> Remember me
-                  </label>
-                  <div className="ml-auto text-sm text-gray-600">Est. Total: <strong className="text-yellow-700">{formatPrice(estimatedTotal)}</strong></div>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Service</label>
+                  <select value={service} onChange={(e)=>setService(e.target.value)} className="mt-1 w-full border rounded-md px-3 py-2">
+                    {SERVICES.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name} — {s.price}$ • {s.duration}m</option>
+                    ))}
+                  </select>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Guests</label>
+                  <input type="number" min={1} max={6} value={guests} onChange={(e)=>setGuests(Number(e.target.value))} className="mt-1 w-full border rounded-md px-3 py-2" />
+                </div>
+                <div className="text-sm text-gray-600">Est. Total: <strong>{formatPrice(estimatedTotal)}</strong></div>
               </div>
             )}
+
             {step === 2 && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Date</label>
                   <input type="date" value={date} onChange={(e)=>setDate(e.target.value)} className="mt-1 w-full border rounded-md px-3 py-2" />
@@ -160,8 +160,9 @@ export default function Booking() {
                 </div>
               </div>
             )}
+
             {step === 3 && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-3 grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Name</label>
                   <input value={name} onChange={(e)=>setName(e.target.value)} className="mt-1 w-full border rounded-md px-3 py-2" placeholder="Your name" />
@@ -172,8 +173,9 @@ export default function Booking() {
                 </div>
               </div>
             )}
+
             {step === 4 && (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div className="text-sm text-gray-700">Summary</div>
                 <div className="text-sm text-gray-600"><strong>Service:</strong> {SERVICES.find(s=>s.id===service)?.name}</div>
                 <div className="text-sm text-gray-600"><strong>Date:</strong> {date || '—'}</div>
