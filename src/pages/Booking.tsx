@@ -108,7 +108,7 @@ export default function Booking() {
     <section className="py-12 bg-gradient-to-b from-slate-50 to-white">
       <div className="max-w-4xl mx-auto px-4">
         <h2 className="text-3xl font-extrabold text-gray-800 mb-6">Booking</h2>
-        <div className="grid lg:grid-cols-2 gap-6 items-start">
+        <div className="grid lg:grid-cols-2 gap-6">
           <div className="bg-white/10 border border-white/20 rounded-xl p-6 shadow-md">
             <div className="flex items-center justify-between mb-4">
               <div className="text-sm font-semibold text-gray-700">Step {step} of 4</div>
@@ -133,6 +133,7 @@ export default function Booking() {
                   <label className="block text-sm font-medium text-gray-700">Guests</label>
                   <input type="number" min={1} max={6} value={guests} onChange={(e)=>setGuests(Number(e.target.value))} className="mt-1 w-full border rounded-md px-3 py-2" />
                 </div>
+                <div className="text-sm text-gray-600">Est. Total: <strong>{money(estTotal)}</strong></div>
               </div>
             )}
 
@@ -188,7 +189,7 @@ export default function Booking() {
           </div>
           <aside className="bg-white/5 border border-white/20 rounded-md p-6 shadow-md" aria-label="Booking summary">
             <div className="text-lg font-semibold mb-2">Summary</div>
-            {SummaryPanel}
+            {currentSummary}
           </aside>
         </div>
       </div>
