@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 type Service = {
   id: string
@@ -30,22 +30,19 @@ function emailValid(e: string) {
 export default function Booking() {
   // 4-step wizard state
   const [step, setStep] = useState(1)
-  // Step data
   const [service, setService] = useState<string>(SERVICES[0].id)
   const [guests, setGuests] = useState<number>(1)
   const [date, setDate] = useState('')
   const [slot, setSlot] = useState('')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [notes, setNotes] = useState('')
-  const [remember, setRemember] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
 
-  // Availability (mock): derived slots for a date
+  // Availability (mock): per-date slots
   const availableSlots = useMemo<string[]>(() => {
     if (!date) return []
     const base = ['09:00', '11:00', '13:00', '15:00']
-    const seed = date.split('-').join('')
+    const seed = date.replace(/-/g, '')
     const drop = Math.abs(seed.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % 2
     const s = base.slice()
     if (drop > 0) s.pop()
@@ -60,22 +57,19 @@ export default function Booking() {
   const estTotal = selected.price * Math.max(1, guests)
 
   function next() {
-    // validations per step
-    if (step === 1) {
-      if (!service || guests < 1) {
-        setStatus('Please select a service and at least 1 guest.')
-        return
-      }
-    } else if (step === 2) {
-      if (!date || !slot) {
-        setStatus('Please select a date and time slot.')
-        return
-      }
-    } else if (step === 3) {
-      if (!name.trim() || !emailValid(email)) {
-        setStatus('Please provide a valid name and email.')
-        return
-      }
+    if (step === 4) return
+    // Validation per step
+    if (step === 1 && (!service || guests < 1)) {
+      setStatus('Please choose a service and at least 1 guest.')
+      return
+    }
+    if (step === 2 && (!date || !slot)) {
+      setStatus('Please select a date and time slot.')
+      return
+    }
+    if (step === 3 && (!name.trim() || !emailValid(email))) {
+      setStatus('Please provide a valid name and email.')
+      return
     }
     setStatus(null)
     setStep((s) => Math.min(4, s + 1))
@@ -87,33 +81,28 @@ export default function Booking() {
   }
 
   function submit() {
-    // Final confirmation
     if (!date || !slot || !name.trim() || !emailValid(email)) {
       setStatus('Please complete all required fields.')
       return
     }
     setStatus('Booking confirmed. We will email you with details.')
-    // Persist to localStorage as a simple history for feature parity
     try {
       const histRaw = localStorage.getItem('bookingHistory')
       const hist: BookingRecord[] = histRaw ? JSON.parse(histRaw) : []
       hist.push({ serviceId: service, date, guests })
       localStorage.setItem('bookingHistory', JSON.stringify(hist))
     } catch {}
-    if (remember) {
-      localStorage.setItem('bookingPrefs', JSON.stringify({ name, email }))
-    } else {
-      localStorage.removeItem('bookingPrefs')
-    }
   }
 
-  const currentSummary = (
-    <div className="space-y-2 text-sm text-gray-700">
-      <div>Service: {selected.name} ({selected.duration}m) - {money(selected.price)}</div>
-      <div>Date: {date || '—'}</div>
-      <div>Time: {slot || '—'}</div>
-      <div>Guests: {guests}</div>
-      <div>Est. Total: {money(estTotal)}</div>
+  const serviceLabel = `${selected.name} — ${selected.price}$ • ${selected.duration}m`
+
+  const SummaryPanel = (
+    <div className="bg-white/5 border border-white/20 rounded-md p-4 space-y-2 text-sm text-gray-700">
+      <div><strong>Service</strong>: {serviceLabel}</div>
+      <div><strong>Date</strong>: {date || '—'}</div>
+      <div><strong>Time</strong>: {slot || '—'}</div>
+      <div><strong>Guests</strong>: {guests}</div>
+      <div><strong>Est. Total</strong>: {money(estTotal)}</div>
     </div>
   )
 
@@ -121,7 +110,7 @@ export default function Booking() {
     <section className="py-12 bg-gradient-to-b from-slate-50 to-white">
       <div className="max-w-4xl mx-auto px-4">
         <h2 className="text-3xl font-extrabold text-gray-800 mb-6">Booking</h2>
-        <div className="grid lg:grid-cols-2 gap-6 items-start">
+        <div className="grid lg:grid-cols-2 gap-8 items-start">
           <div className="bg-white/10 border border-white/20 rounded-xl p-6 shadow-md">
             <div className="flex items-center justify-between mb-4">
               <div className="text-sm font-semibold text-gray-700">Step {step} of 4</div>
@@ -156,7 +145,7 @@ export default function Booking() {
                   <input type="date" value={date} onChange={(e)=>setDate(e.target.value)} className="mt-1 w-full border rounded-md px-3 py-2" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Slot</label>
+                  <label className="block text-sm font-medium text-gray-700">Time Slot</label>
                   <select value={slot} onChange={(e)=>setSlot(e.target.value)} className="mt-1 w-full border rounded-md px-3 py-2" disabled={!date || availableSlots.length===0}>
                     <option value="">{date ? 'Choose a time' : 'Select a date first'}</option>
                     {availableSlots.map((s)=> <option key={s} value={s}>{s}</option>)}
@@ -166,7 +155,7 @@ export default function Booking() {
             )}
 
             {step >= 3 && (
-              <div className="space-y-3 grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Name</label>
                   <input value={name} onChange={(e)=>setName(e.target.value)} className="mt-1 w-full border rounded-md px-3 py-2" placeholder="Your name" />
@@ -179,11 +168,16 @@ export default function Booking() {
             )}
 
             {step >= 4 && (
-              <div className="p-3 border rounded-md bg-white/20">{currentSummary}</div>
+              <div className="pt-2">
+                {SummaryPanel}
+                <div className="mt-2 text-sm text-gray-600">This is a premium mock. In production, a real API call would occur here.</div>
+              </div>
             )}
 
             <div className="flex items-center justify-between mt-4">
-              {step > 1 && <button onClick={back} className="px-4 py-2 rounded-md bg-gray-200">Back</button>}
+              {step > 1 && (
+                <button onClick={back} className="px-4 py-2 rounded-md bg-gray-200">Back</button>
+              )}
               {step < 4 ? (
                 <button onClick={next} className="px-4 py-2 rounded-md bg-amber-500 text-black font-semibold">Next</button>
               ) : (
@@ -191,15 +185,14 @@ export default function Booking() {
               )}
             </div>
             {status && (
-              <div role={typeof status === 'string' ? 'alert' : 'status'} aria-live="polite" className={typeof status === 'string' ? 'bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md' : 'bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-md'}>
+              <div role="status" aria-live="polite" className="bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-md mt-2">
                 {status}
               </div>
             )}
           </div>
-          <aside className="bg-white/5 border border-white/20 rounded-xl p-6 shadow-md" aria-label="Booking summary">
-            <h3 className="text-lg font-semibold mb-2">Summary</h3>
+          <aside className="bg-white/5 border border-white/20 rounded-md p-6 shadow-md" aria-label="Booking summary">
+            <div className="text-lg font-semibold mb-2">Summary</div>
             {currentSummary}
-            <div className="mt-2 text-sm text-gray-500">Prices are estimates and subject to change.</div>
           </aside>
         </div>
       </div>
