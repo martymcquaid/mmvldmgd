@@ -108,18 +108,6 @@ export default function Booking() {
     }
   }
 
-  function resetForm() {
-    setName('')
-    setEmail('')
-    setDate('')
-    setService(SERVICES[0].id)
-    setGuests(1)
-    setSlot('')
-    setNotes('')
-    setStatus(null)
-  }
-
-  // UI
   return (
     <section className="py-12 bg-gradient-to-b from-slate-50 to-white">
       <div className="max-w-4xl mx-auto px-4">
