@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 
 type Service = {
   id: string
@@ -19,12 +19,6 @@ const SERVICES: Service[] = [
   { id: 'signature', name: 'Signature Trim', duration: 60, price: 60 },
 ]
 
-function todayISO(): string {
-  const d = new Date()
-  d.setMinutes(d.getMinutes() - d.getTimezoneOffset())
-  return d.toISOString().slice(0, 10)
-}
-
 function formatPrice(n: number): string {
   return `$${n.toFixed(2)}`
 }
@@ -38,7 +32,6 @@ export default function Booking() {
   const [slot, setSlot] = useState('')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [notes, setNotes] = useState('')
   const [status, setStatus] = useState<{ ok: boolean; message: string } | null>(null)
   const [remember, setRemember] = useState(false)
 
@@ -116,7 +109,7 @@ export default function Booking() {
     <section className="py-12 bg-gradient-to-b from-slate-50 to-white">
       <div className="max-w-4xl mx-auto px-4">
         <h2 className="text-3xl font-extrabold text-gray-800 mb-6">Booking</h2>
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid lg:grid-cols-2 gap-6 items-start">
           <div className="bg-white/10 border border-white/20 rounded-xl p-6 shadow-md">
             <div className="flex items-center justify-between mb-4">
               <div className="text-sm font-semibold text-gray-700">Step {step} of 4</div>
@@ -142,6 +135,10 @@ export default function Booking() {
                   <input type="number" min={1} max={6} value={guests} onChange={(e)=>setGuests(Number(e.target.value))} className="mt-1 w-full border rounded-md px-3 py-2" />
                 </div>
                 <div className="text-sm text-gray-600">Est. Total: <strong>{formatPrice(estimatedTotal)}</strong></div>
+                <div className="flex items-center gap-2">
+                  <input id="remember" type="checkbox" checked={remember} onChange={(e)=>setRemember(e.target.checked)} />
+                  <label htmlFor="remember" className="text-sm text-gray-700">Remember me for faster checkout</label>
+                </div>
               </div>
             )}
 
@@ -162,7 +159,7 @@ export default function Booking() {
             )}
 
             {step === 3 && (
-              <div className="space-y-3 grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Name</label>
                   <input value={name} onChange={(e)=>setName(e.target.value)} className="mt-1 w-full border rounded-md px-3 py-2" placeholder="Your name" />
