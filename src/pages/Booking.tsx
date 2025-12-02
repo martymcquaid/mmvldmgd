@@ -8,6 +8,12 @@ type Service = {
   price: number
 }
 
+type BookingRecord = {
+  serviceId: string
+  date: string
+  guests: number
+}
+
 const SERVICES: Service[] = [
   { id: 'classic', name: 'Classic Cut', duration: 30, price: 25 },
   { id: 'beard', name: 'Beard & Shave', duration: 45, price: 40 },
@@ -36,9 +42,20 @@ export default function Booking() {
   const [notes, setNotes] = useState('')
   const [status, setStatus] = useState<{ ok: boolean; message: string } | null>(null)
   const [touched, setTouched] = useState<{ [k: string]: boolean }>({})
+  const [remember, setRemember] = useState(false)
 
-  // Lightweight ML-ish: load previous bookings to recommend a service
-  const [recommendedService, setRecommendedService] = useState<string | null>(null)
+  // Premium: saved prefs and history
+  useEffect(() => {
+    try {
+      const prefsRaw = localStorage.getItem('bookingPrefs')
+      if (prefsRaw) {
+        const prefs = JSON.parse(prefsRaw)
+        if (prefs.name) setName(prefs.name)
+        if (prefs.email) setEmail(prefs.email)
+        setRemember(!!prefs.name || !!prefs.email)
+      }
+    } catch { /* ignore */ }
+  }, [])
 
   // Availability (mocked): derive slots from date for a touch of realism
   const availableSlots = useMemo<string[]>(() => {
@@ -46,7 +63,6 @@ export default function Booking() {
     const base = ['09:00', '11:00', '13:00', '15:00']
     const seed = date.split('-').join('')
     const numToRemove = Math.abs(seed.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % 2
-    // remove up to 1 slot for variety
     const slots = base.slice()
     if (numToRemove > 0) slots.pop()
     return slots
@@ -59,42 +75,17 @@ export default function Booking() {
     }
   }, [availableSlots, slot])
 
-  // Read booking history to suggest a service
-  useEffect(() => {
-    try {
-      const histRaw = localStorage.getItem('bookingHistory')
-      if (histRaw) {
-        const hist = JSON.parse(histRaw) as { serviceId: string }[]
-        if (Array.isArray(hist) && hist.length > 0) {
-          const freq = new Map<string, number>()
-          hist.forEach((b) => freq.set(b.serviceId, (freq.get(b.serviceId) || 0) + 1))
-          let top: string | null = null
-          let max = 0
-          freq.forEach((count, id) => { if (count > max) { max = count; top = id } })
-          if (top) setRecommendedService(top)
-        }
-      }
-    } catch {
-      // ignore
-    }
-  }, [])
-
-  // Apply recommendation once
-  useEffect(() => { if (recommendedService) setService(recommendedService) }, [recommendedService])
-
   const todayMin = todayISO()
 
   const selectedService = SERVICES.find((s) => s.id === service) ?? SERVICES[0]
   const estimatedTotal = selectedService.price * Math.max(1, guests)
 
   function emailValid(e: string) {
-    // simple email validation
     return /^\S+@\S+\.\S+$/.test(e)
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    // Touch all fields for validation UI
     setTouched({ name: true, email: true, date: true, slot: true, service: true, guests: true })
 
     const ok = name.trim().length >= 2 && emailValid(email) && !!date && !!slot && guests > 0
@@ -102,19 +93,26 @@ export default function Booking() {
       setStatus({ ok: false, message: 'Please complete all required fields with valid information.' })
       return
     }
-  // simulate API call
-  setStatus({ ok: true, message: 'Booking request received. We will contact you shortly to confirm details.' })
+    // simulate API call
+    setStatus({ ok: true, message: 'Booking request received. We will contact you shortly to confirm details.' })
 
-  // Persist to localStorage as a lightweight history (ML-ish signal)
-  try {
-    const histRaw = localStorage.getItem('bookingHistory')
-    const hist = histRaw ? JSON.parse(histRaw) : []
-    const newRecord = { serviceId: service, date, guests }
-    hist.push(newRecord)
-    localStorage.setItem('bookingHistory', JSON.stringify(hist))
-  } catch {
-    // ignore persistence errors
-  }
+    // Persist to localStorage as a lightweight history (ML-ish signal)
+    try {
+      const histRaw = localStorage.getItem('bookingHistory')
+      const hist: BookingRecord[] = histRaw ? JSON.parse(histRaw) : []
+      const newRecord: BookingRecord = { serviceId: service, date, guests }
+      hist.push(newRecord)
+      localStorage.setItem('bookingHistory', JSON.stringify(hist))
+    } catch {
+      // ignore persistence errors
+    }
+
+    if (remember) {
+      const prefs = { name, email }
+      localStorage.setItem('bookingPrefs', JSON.stringify(prefs))
+    } else {
+      localStorage.removeItem('bookingPrefs')
+    }
   }
 
   function resetForm() {
@@ -130,9 +128,6 @@ export default function Booking() {
     setTouched({})
   }
 
-  // Simple inline calendar-like helper: show a tiny grid for the selected date (optional flourish)
-  // For now we keep it lightweight and rely on native date input.
-
   return (
     <section className="py-12 bg-gradient-to-b from-slate-50 to-white">
       <div className="max-w-4xl mx-auto px-4">
@@ -140,7 +135,7 @@ export default function Booking() {
         <div className="grid md:grid-cols-2 gap-6 items-start">
           <form
             onSubmit={handleSubmit}
-            className="space-y-4 bg-white rounded-md p-6 shadow-md"
+            className="space-y-4 bg-white rounded-xl p-6 shadow-md"
             aria-label="Booking form"
           >
             {status?.ok ? (
@@ -153,66 +148,59 @@ export default function Booking() {
               </div>
             ) : null}
 
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-semibold text-gray-700">Booking Details</div>
+              <div className="h-2 w-28 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full" aria-hidden />
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700" htmlFor="name">Name</label>
-              <input id="name" value={name} onChange={(e) => setName(e.target.value)} onBlur={() => setTouched((t) => ({ ...t, name: true }))} className="mt-1 w-full border rounded-md px-3 py-2" placeholder="Your full name" />
-              {touched.name && name.trim().length < 2 && (
-                <p className="text-sm text-red-600 mt-1">Please enter your full name.</p>
-              )}
+              <input id="name" value={name} onChange={(e) => setName(e.target.value)} onBlur={() => setTouched((t) => ({ ...t, name: true }))} className="mt-1 w-full rounded-md px-3 py-2 bg-white/70 text-black border border-gray-300" placeholder="Your full name" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700" htmlFor="email">Email</label>
-              <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} onBlur={() => setTouched((t) => ({ ...t, email: true }))} className="mt-1 w-full border rounded-md px-3 py-2" placeholder="you@example.com" />
-              {touched.email && !emailValid(email) && (
-                <p className="text-sm text-red-600 mt-1">Please provide a valid email address.</p>
-              )}
+              <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} onBlur={() => setTouched((t) => ({ ...t, email: true }))} className="mt-1 w-full rounded-md px-3 py-2 bg-white/70 text-black border border-gray-300" placeholder="you@example.com" />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700" htmlFor="phone">Phone</label>
-              <input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} className="mt-1 w-full border rounded-md px-3 py-2" placeholder="Optional" />
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700" htmlFor="date">Date</label>
+                <input id="date" type="date" min={todayMin} value={date} onChange={(e) => setDate(e.target.value)} onBlur={() => setTouched((t) => ({ ...t, date: true }))} className="mt-1 w-full rounded-md px-3 py-2 bg-white/70 text-black border border-gray-300" />
+              </div>
+              <div className="w-40">
+                <label className="block text-sm font-medium text-gray-700" htmlFor="slot">Slot</label>
+                <select id="slot" value={slot} onChange={(e) => setSlot(e.target.value)} className="mt-1 w-full rounded-md px-3 py-2 bg-white/70 text-black border border-gray-300" disabled={!date || availableSlots.length === 0}>
+                  <option value="">{date ? 'Choose a time' : 'Select a date first'}</option>
+                  {availableSlots.map((s) => (<option key={s} value={s}>{s}</option>))}
+                </select>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700" htmlFor="date">Date</label>
-              <input id="date" type="date" min={todayMin} value={date} onChange={(e) => setDate(e.target.value)} onBlur={() => setTouched((t) => ({ ...t, date: true }))} className="mt-1 w-full border rounded-md px-3 py-2" />
-              {touched.date && !date && <p className="text-sm text-red-600 mt-1">Please select a date.</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700" htmlFor="service">Service</label>
-              <select id="service" value={service} onChange={(e) => { setService(e.target.value); setSlot(''); }} onBlur={() => setTouched((t) => ({ ...t, service: true }))} className="mt-1 w-full border rounded-md px-3 py-2">
-                {SERVICES.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name} — {formatPrice(s.price)} • {s.duration}m</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700" htmlFor="guests">Guests</label>
-              <input id="guests" type="number" min={1} max={6} value={guests} onChange={(e) => setGuests(Number(e.target.value))} onBlur={() => setTouched((t) => ({ ...t, guests: true }))} className="mt-1 w-full border rounded-md px-3 py-2" />
-              {touched.guests && (guests < 1) && <p className="text-sm text-red-600 mt-1">Must be at least 1 guest.</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700" htmlFor="slot">Time Slot</label>
-              <select id="slot" value={slot} onChange={(e) => setSlot(e.target.value)} className="mt-1 w-full border rounded-md px-3 py-2" disabled={!date || availableSlots.length === 0}>
-                <option value="">{date ? 'Choose a time' : 'Select a date first'}</option>
-                {availableSlots.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-              {date && availableSlots.length === 0 && (
-                <p className="text-sm text-gray-600 mt-1">No slots available for this date. Try another day.</p>
-              )}
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700" htmlFor="service">Service</label>
+                <select id="service" value={service} onChange={(e) => { setService(e.target.value); setSlot(''); }} onBlur={() => setTouched((t) => ({ ...t, service: true }))} className="mt-1 w-full rounded-md px-3 py-2 bg-white/70 text-black border border-gray-300">
+                  {SERVICES.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name} — ${s.price} • {s.duration}m</option>
+                  ))}
+                </select>
+              </div>
+              <div className="w-28">
+                <label className="block text-sm font-medium text-gray-700" htmlFor="guests">Guests</label>
+                <input id="guests" type="number" min={1} max={6} value={guests} onChange={(e) => setGuests(Number(e.target.value))} onBlur={() => setTouched((t) => ({ ...t, guests: true }))} className="mt-1 w-full rounded-md px-3 py-2 bg-white/70 text-black border border-gray-300" />
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700" htmlFor="notes">Notes</label>
-              <textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} className="mt-1 w-full border rounded-md px-3 py-2" placeholder="Any special requests..." />
+              <textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} className="mt-1 w-full border rounded-md px-3 py-2 bg-white/70 text-black border-gray-300" placeholder="Any special requests..." />
             </div>
-            <div className="flex space-x-4 mt-2">
-              <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-md" aria-label="Submit booking">Submit</button>
-              <button type="button" onClick={resetForm} className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md">Reset</button>
-              <Link to="/contact" className="text-sm text-gray-600 inline-flex items-center">Need help?</Link>
+            <div className="flex items-center justify-between">
+              <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" checked={remember} onChange={(e)=>setRemember(e.target.checked)} /> Remember me
+              </label>
+              <button type="submit" className="bg-gradient-to-r from-amber-500 to-yellow-400 text-black px-4 py-2 rounded-md font-semibold">Submit</button>
             </div>
           </form>
 
-          <aside className="bg-white rounded-md p-6 shadow-md" aria-label="Booking summary">
+          <aside className="bg-white/5 border border-white/20 rounded-xl p-6 shadow-md" aria-label="Booking summary">
             <h3 className="text-lg font-semibold mb-2">Summary</h3>
             <p className="text-sm text-gray-700 mb-1">Service: {selectedService.name}</p>
             <p className="text-sm text-gray-700 mb-1">Date: {date || '—'}</p>
