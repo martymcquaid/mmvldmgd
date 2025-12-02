@@ -1,12 +1,13 @@
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-white mb-4">mmvldmgd</h1>
-        <p className="text-slate-400">Your project is ready! Start editing in the chat.</p>
-        <p className="text-slate-500 mt-4 text-sm">
-          Note: Use <code className="bg-slate-700 px-2 py-1 rounded">Link</code> from react-router-dom for navigation, not <code className="bg-slate-700 px-2 py-1 rounded">a</code> tags.
-        </p>
+      <div className="text-center p-6">
+        <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-4">mmvldmgd</h1>
+        <p className="text-slate-300 mb-6">A bold, modern starting point for your project.</p>
+        <div className="flex justify-center space-x-4">
+          <a href="/services" className="bg-white text-red-600 px-4 py-2 rounded-md font-semibold">Explore Services</a>
+          <a href="/booking" className="bg-red-600 text-white px-4 py-2 rounded-md font-semibold">Book Now</a>
+        </div>
       </div>
     </div>
   )
