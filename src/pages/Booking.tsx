@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 
 type Service = {
   id: string
@@ -48,10 +48,6 @@ export default function Booking() {
     if (drop > 0) s.pop()
     return s
   }, [date])
-
-  useEffect(() => {
-    if (slot && !availableSlots.includes(slot)) setSlot('')
-  }, [availableSlots, slot])
 
   const selected = SERVICES.find((s) => s.id === service) ?? SERVICES[0]
   const estTotal = selected.price * Math.max(1, guests)
