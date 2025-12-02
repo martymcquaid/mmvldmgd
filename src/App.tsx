@@ -1,16 +1,1 @@
-import { Routes, Route } from 'react-router-dom'
-import Home from './pages/Home'
-
-// IMPORTANT: For navigation, always use <Link> from react-router-dom, not <a> tags
-// This ensures client-side routing works correctly with the preview URL base path
-// Example: <Link to="/about">About</Link> instead of <a href="/about">About</a>
-
-function App() {
-  return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-    </Routes>
-  )
-}
-
-export default App
+import { BrowserRouter, Routes, Route } from 'react-router-dom'\nimport Home from './pages/Home'\nimport Services from './pages/Services'\nimport Team from './pages/Team'\nimport Gallery from './pages/Gallery'\nimport Booking from './pages/Booking'\nimport Contact from './pages/Contact'\nimport Navbar from './components/Navbar'\nimport Footer from './components/Footer'\n\nfunction App() {\n  return (\n    <BrowserRouter>\n      <Navbar />\n      <main className=\"pt-20\">\n        <Routes>\n          <Route path=\"/\" element={<Home />} />\n          <Route path=\"/services\" element={<Services />} />\n          <Route path=\"/team\" element={<Team />} />\n          <Route path=\"/gallery\" element={<Gallery />} />\n          <Route path=\"/booking\" element={<Booking />} />\n          <Route path=\"/contact\" element={<Contact />} />\n          <Route path=\"*\" element={<Home />} />\n        </Routes>\n      </main>\n      <Footer />\n    </BrowserRouter>\n  )\n}\n\nexport default App\n
