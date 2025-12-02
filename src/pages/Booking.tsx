@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 
 type Service = {
   id: string
@@ -23,22 +23,28 @@ function money(n: number) {
   return `$${n.toFixed(2)}`
 }
 
+function emailValid(e: string) {
+  return /^\S+@\S+\.\S+$/.test(e)
+}
+
 export default function Booking() {
   // 4-step wizard state
   const [step, setStep] = useState(1)
+  // Step data
   const [service, setService] = useState<string>(SERVICES[0].id)
   const [guests, setGuests] = useState<number>(1)
   const [date, setDate] = useState('')
   const [slot, setSlot] = useState('')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [notes, setNotes] = useState('')
+  const [remember, setRemember] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
-  const [remember, setRemember] = useState(true)
 
-  const baseSlots = useMemo<string[]>(() => {
+  // Availability (mock): derived slots for a date
+  const availableSlots = useMemo<string[]>(() => {
     if (!date) return []
     const base = ['09:00', '11:00', '13:00', '15:00']
-    // deterministic variation by date
     const seed = date.split('-').join('')
     const drop = Math.abs(seed.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % 2
     const s = base.slice()
@@ -47,55 +53,75 @@ export default function Booking() {
   }, [date])
 
   useEffect(() => {
-    if (slot && !baseSlots.includes(slot)) setSlot('')
-  }, [baseSlots, slot])
+    if (slot && !availableSlots.includes(slot)) setSlot('')
+  }, [availableSlots, slot])
 
   const selected = SERVICES.find((s) => s.id === service) ?? SERVICES[0]
   const estTotal = selected.price * Math.max(1, guests)
 
-  const emailOk = (e: string) => /^\S+@\S+\.\S+$/.test(e)
-
   function next() {
-    if (step === 4) return
-    // validation per step
+    // validations per step
     if (step === 1) {
-      if (!service || guests < 1) { setStatus('Please select a service and at least 1 guest.'); return }
+      if (!service || guests < 1) {
+        setStatus('Please select a service and at least 1 guest.')
+        return
+      }
     } else if (step === 2) {
-      if (!date || !slot) { setStatus('Please select a date and time slot.'); return }
+      if (!date || !slot) {
+        setStatus('Please select a date and time slot.')
+        return
+      }
     } else if (step === 3) {
-      if (name.trim().length < 2 || !emailOk(email)) { setStatus('Please enter a valid name and email.'); return }
+      if (!name.trim() || !emailValid(email)) {
+        setStatus('Please provide a valid name and email.')
+        return
+      }
     }
     setStatus(null)
-    setStep((s) => s + 1)
+    setStep((s) => Math.min(4, s + 1))
   }
 
   function back() {
-    if (step <= 1) return
     setStatus(null)
-    setStep((s) => s - 1)
+    setStep((s) => Math.max(1, s - 1))
   }
 
-  function confirm() {
+  function submit() {
     // Final confirmation
-    if (!name.trim() || !emailOk(email) || !date || !slot) {
-      setStatus('Please complete all required fields on the previous steps.')
+    if (!date || !slot || !name.trim() || !emailValid(email)) {
+      setStatus('Please complete all required fields.')
       return
     }
-    setStatus('Booking confirmed. We will email you shortly with details.')
+    setStatus('Booking confirmed. We will email you with details.')
+    // Persist to localStorage as a simple history for feature parity
     try {
       const histRaw = localStorage.getItem('bookingHistory')
       const hist: BookingRecord[] = histRaw ? JSON.parse(histRaw) : []
       hist.push({ serviceId: service, date, guests })
       localStorage.setItem('bookingHistory', JSON.stringify(hist))
     } catch {}
+    if (remember) {
+      localStorage.setItem('bookingPrefs', JSON.stringify({ name, email }))
+    } else {
+      localStorage.removeItem('bookingPrefs')
+    }
   }
 
-  // UI
+  const currentSummary = (
+    <div className="space-y-2 text-sm text-gray-700">
+      <div>Service: {selected.name} ({selected.duration}m) - {money(selected.price)}</div>
+      <div>Date: {date || '—'}</div>
+      <div>Time: {slot || '—'}</div>
+      <div>Guests: {guests}</div>
+      <div>Est. Total: {money(estTotal)}</div>
+    </div>
+  )
+
   return (
     <section className="py-12 bg-gradient-to-b from-slate-50 to-white">
       <div className="max-w-4xl mx-auto px-4">
         <h2 className="text-3xl font-extrabold text-gray-800 mb-6">Booking</h2>
-        <div className="grid lg:grid-cols-2 gap-8 items-start">
+        <div className="grid lg:grid-cols-2 gap-6 items-start">
           <div className="bg-white/10 border border-white/20 rounded-xl p-6 shadow-md">
             <div className="flex items-center justify-between mb-4">
               <div className="text-sm font-semibold text-gray-700">Step {step} of 4</div>
@@ -106,7 +132,7 @@ export default function Booking() {
               </div>
             </div>
 
-            {step === 1 && (
+            {step >= 1 && (
               <div className="space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Service</label>
@@ -120,28 +146,27 @@ export default function Booking() {
                   <label className="block text-sm font-medium text-gray-700">Guests</label>
                   <input type="number" min={1} max={6} value={guests} onChange={(e)=>setGuests(Number(e.target.value))} className="mt-1 w-full border rounded-md px-3 py-2" />
                 </div>
-                <div className="text-sm text-gray-600">Estimated Total: <strong>{money(estTotal)}</strong></div>
               </div>
             )}
 
-            {step === 2 && (
+            {step >= 2 && (
               <div className="space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Date</label>
                   <input type="date" value={date} onChange={(e)=>setDate(e.target.value)} className="mt-1 w-full border rounded-md px-3 py-2" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Time Slot</label>
-                  <select value={slot} onChange={(e)=>setSlot(e.target.value)} className="mt-1 w-full border rounded-md px-3 py-2" disabled={!date || !baseSlots.length}>
+                  <label className="block text-sm font-medium text-gray-700">Slot</label>
+                  <select value={slot} onChange={(e)=>setSlot(e.target.value)} className="mt-1 w-full border rounded-md px-3 py-2" disabled={!date || availableSlots.length===0}>
                     <option value="">{date ? 'Choose a time' : 'Select a date first'}</option>
-                    {baseSlots.map((s) => (<option key={s} value={s}>{s}</option>))}
+                    {availableSlots.map((s)=> <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
               </div>
             )}
 
-            {step === 3 && (
-              <div className="grid grid-cols-2 gap-4">
+            {step >= 3 && (
+              <div className="space-y-3 grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Name</label>
                   <input value={name} onChange={(e)=>setName(e.target.value)} className="mt-1 w-full border rounded-md px-3 py-2" placeholder="Your name" />
@@ -153,32 +178,29 @@ export default function Booking() {
               </div>
             )}
 
-            {step === 4 && (
-              <div className="space-y-2">
-                <div className="text-sm text-gray-700">Summary</div>
-                <div className="text-sm text-gray-600"><strong>Service:</strong> {SERVICES.find(s=>s.id===service)?.name}</div>
-                <div className="text-sm text-gray-600"><strong>Date:</strong> {date || '—'}</div>
-                <div className="text-sm text-gray-600"><strong>Time:</strong> {slot || '—'}</div>
-                <div className="text-sm text-gray-600"><strong>Guests:</strong> {guests}</div>
-                <div className="text-sm text-gray-600"><strong>Total:</strong> {money(estTotal)}</div>
-              </div>
+            {step >= 4 && (
+              <div className="p-3 border rounded-md bg-white/20">{currentSummary}</div>
             )}
-          </div>
-          <div className="flex flex-col gap-4">
-            {step > 1 && (
-              <button onClick={back} className="px-4 py-2 rounded-md bg-gray-200">Back</button>
-            )}
-            {step < 4 ? (
-              <button onClick={next} className="px-4 py-2 rounded-md bg-amber-500 text-black font-semibold">Next</button>
-            ) : (
-              <button onClick={confirm} className="px-4 py-2 rounded-md bg-amber-600 text-black font-semibold">Confirm Booking</button>
-            )}
+
+            <div className="flex items-center justify-between mt-4">
+              {step > 1 && <button onClick={back} className="px-4 py-2 rounded-md bg-gray-200">Back</button>}
+              {step < 4 ? (
+                <button onClick={next} className="px-4 py-2 rounded-md bg-amber-500 text-black font-semibold">Next</button>
+              ) : (
+                <button onClick={submit} className="px-4 py-2 rounded-md bg-amber-600 text-black font-semibold">Confirm Booking</button>
+              )}
+            </div>
             {status && (
               <div role={typeof status === 'string' ? 'alert' : 'status'} aria-live="polite" className={typeof status === 'string' ? 'bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md' : 'bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-md'}>
                 {status}
               </div>
             )}
           </div>
+          <aside className="bg-white/5 border border-white/20 rounded-xl p-6 shadow-md" aria-label="Booking summary">
+            <h3 className="text-lg font-semibold mb-2">Summary</h3>
+            {currentSummary}
+            <div className="mt-2 text-sm text-gray-500">Prices are estimates and subject to change.</div>
+          </aside>
         </div>
       </div>
     </section>
