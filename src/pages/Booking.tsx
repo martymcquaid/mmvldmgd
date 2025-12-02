@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 
 type Service = {
   id: string
@@ -133,10 +133,6 @@ export default function Booking() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Guests</label>
                   <input type="number" min={1} max={6} value={guests} onChange={(e)=>setGuests(Number(e.target.value))} className="mt-1 w-full border rounded-md px-3 py-2" />
-                </div>
-                <div className="flex items-center gap-2">
-                  <input id="remember" type="checkbox" checked={remember} onChange={(e)=>setRemember(e.target.checked)} />
-                  <label htmlFor="remember" className="text-sm text-gray-700">Remember me for faster checkout</label>
                 </div>
                 <div className="text-sm text-gray-600">Est. Total: <strong>{formatPrice(estimatedTotal)}</strong></div>
               </div>
