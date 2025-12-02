@@ -1,5 +1,3 @@
-import React from 'react'
-
 function BarberCard({ name, title, bio }: { name: string; title: string; bio: string }) {
   return (
     <div className="bg-white rounded-lg shadow p-4 flex-1">
