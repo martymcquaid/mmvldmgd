@@ -1,1 +1,29 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'\nimport Home from './pages/Home'\nimport Services from './pages/Services'\nimport Team from './pages/Team'\nimport Gallery from './pages/Gallery'\nimport Booking from './pages/Booking'\nimport Contact from './pages/Contact'\nimport Navbar from './components/Navbar'\nimport Footer from './components/Footer'\n\nfunction App() {\n  return (\n    <BrowserRouter>\n      <Navbar />\n      <main className=\"pt-20\">\n        <Routes>\n          <Route path=\"/\" element={<Home />} />\n          <Route path=\"/services\" element={<Services />} />\n          <Route path=\"/team\" element={<Team />} />\n          <Route path=\"/gallery\" element={<Gallery />} />\n          <Route path=\"/booking\" element={<Booking />} />\n          <Route path=\"/contact\" element={<Contact />} />\n          <Route path=\"*\" element={<Home />} />\n        </Routes>\n      </main>\n      <Footer />\n    </BrowserRouter>\n  )\n}\n\nexport default App\n
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import Home from './pages/Home'
+import Services from './pages/Services'
+import Team from './pages/Team'
+import Gallery from './pages/Gallery'
+import Booking from './pages/Booking'
+import Contact from './pages/Contact'
+import Navbar from './components/Navbar'
+import Footer from './components/Footer'
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Navbar />
+      <main className="pt-20">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/services" element={<Services />} />
+          <Route path="/team" element={<Team />} />
+          <Route path="/gallery" element={<Gallery />} />
+          <Route path="/booking" element={<Booking />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="*" element={<Home />} />
+        </Routes>
+      </main>
+      <Footer />
+    </BrowserRouter>
+  )
+}
