@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom'
+import { useTheme } from '../theme/ThemeContext'
 
 export default function Navbar() {
+  const { theme, toggle } = useTheme()
   const links = [
     { to: '/', label: 'Home' },
     { to: '/services', label: 'Services' },
@@ -18,6 +20,9 @@ export default function Navbar() {
           {links.map((l) => (
             <Link key={l.to} to={l.to} className="text-gray-700 hover:text-red-700">{l.label}</Link>
           ))}
+          <button aria-label="Toggle theme" onClick={toggle} className="ml-4 px-3 py-2 rounded-md bg-black/5 hover:bg-black/10 text-sm">
+            {theme === 'dark' ? '🌙' : '🌞'}
+          </button>
         </div>
       </div>
     </nav>
