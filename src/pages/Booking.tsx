@@ -24,7 +24,7 @@ function money(n: number) {
 }
 
 function emailValid(e: string) {
-  return /^\S+@\S+\.\S+$/.test(e)
+  return /^\\S+@\\S+\\.\\S+$/.test(e)
 }
 
 export default function Booking() {
@@ -94,15 +94,13 @@ export default function Booking() {
     } catch {}
   }
 
-  const serviceLabel = `${selected.name} — ${selected.price}$ • ${selected.duration}m`
-
-  const SummaryPanel = (
-    <div className="bg-white/5 border border-white/20 rounded-md p-4 space-y-2 text-sm text-gray-700">
-      <div><strong>Service</strong>: {serviceLabel}</div>
-      <div><strong>Date</strong>: {date || '—'}</div>
-      <div><strong>Time</strong>: {slot || '—'}</div>
-      <div><strong>Guests</strong>: {guests}</div>
-      <div><strong>Est. Total</strong>: {money(estTotal)}</div>
+  const currentSummary = (
+    <div className="space-y-2 text-sm text-gray-700">
+      <div>Service: {selected.name} ({selected.duration}m) - {selected.price}$</div>
+      <div>Date: {date || '—'}</div>
+      <div>Time: {slot || '—'}</div>
+      <div>Guests: {guests}</div>
+      <div>Est. Total: {money(estTotal)}</div>
     </div>
   )
 
@@ -110,7 +108,7 @@ export default function Booking() {
     <section className="py-12 bg-gradient-to-b from-slate-50 to-white">
       <div className="max-w-4xl mx-auto px-4">
         <h2 className="text-3xl font-extrabold text-gray-800 mb-6">Booking</h2>
-        <div className="grid lg:grid-cols-2 gap-8 items-start">
+        <div className="grid lg:grid-cols-2 gap-6 items-start">
           <div className="bg-white/10 border border-white/20 rounded-xl p-6 shadow-md">
             <div className="flex items-center justify-between mb-4">
               <div className="text-sm font-semibold text-gray-700">Step {step} of 4</div>
@@ -145,7 +143,7 @@ export default function Booking() {
                   <input type="date" value={date} onChange={(e)=>setDate(e.target.value)} className="mt-1 w-full border rounded-md px-3 py-2" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Time Slot</label>
+                  <label className="block text-sm font-medium text-gray-700">Slot</label>
                   <select value={slot} onChange={(e)=>setSlot(e.target.value)} className="mt-1 w-full border rounded-md px-3 py-2" disabled={!date || availableSlots.length===0}>
                     <option value="">{date ? 'Choose a time' : 'Select a date first'}</option>
                     {availableSlots.map((s)=> <option key={s} value={s}>{s}</option>)}
@@ -168,9 +166,7 @@ export default function Booking() {
             )}
 
             {step >= 4 && (
-              <div className="pt-2">
-                {SummaryPanel}
-                <div className="mt-2 text-sm text-gray-600">This is a premium mock. In production, a real API call would occur here.</div>
+              <div className="pt-2">{currentSummary}
               </div>
             )}
 
@@ -192,7 +188,7 @@ export default function Booking() {
           </div>
           <aside className="bg-white/5 border border-white/20 rounded-md p-6 shadow-md" aria-label="Booking summary">
             <div className="text-lg font-semibold mb-2">Summary</div>
-            {currentSummary}
+            {SummaryPanel}
           </aside>
         </div>
       </div>
