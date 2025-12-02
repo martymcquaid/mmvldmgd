@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import ServiceCard from '../components/ServiceCard'
+import Icon from '../components/Icon'
 
 export default function Home() {
   const navigate = useNavigate()
@@ -12,6 +13,13 @@ export default function Home() {
     e.preventDefault()
     navigate('/booking')
   }
+
+  const features = [
+    { title: 'Expert Barbers', desc: 'Masters of classic and modern cuts', icon: 'clock' },
+    { title: 'Premium Shaves', desc: 'Hot towel, balm, and precision', icon: 'image' },
+    { title: 'Beard Care', desc: 'Shaping, trimming, and maintenance', icon: 'user' },
+    { title: 'Fast Booking', desc: 'Online slots in real time', icon: 'check' },
+  ]
 
   return (
     <div className="space-y-16">
@@ -46,70 +54,62 @@ export default function Home() {
                   <option>Signature Trim</option>
                 </select>
               </div>
-              <button className="w-full bg-red-700 hover:bg-red-800 text-white py-2 px-4 rounded-md" type="submit">Check Availability</button>
+              <button className="w-full bg-red-700 hover:bg-red-800 text-white py-2 rounded-md" type="submit">Check Availability</button>
             </form>
           </div>
         </div>
       </section>
 
-      {/* Stats */}
-      <section className="bg-white py-8">
-        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center px-6">
-          {[
-            { v: '20+', t: 'Years Experience' },
-            { v: '1k+', t: 'Happy Clients' },
-            { v: '4.9', t: 'Average Rating' },
-            { v: '24/7', t: 'Open Hours' },
-          ].map((s) => (
-            <div key={s.t} className="bg-gray-50 rounded-lg p-5 shadow-sm">
-              <div className="text-red-600 text-2xl font-bold">{s.v}</div>
-              <div className="text-sm text-gray-600">{s.t}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Services Preview */}
-      <section className="py-12 bg-gradient-to-b from-slate-50 to-white">
+      {/* Features */}
+      <section className="bg-white py-12">
         <div className="max-w-7xl mx-auto px-6">
-          <h2 className="text-3xl font-extrabold text-gray-800 mb-6">Popular Services</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            <ServiceCard title="Classic Cut" description="Timeless barbering with precision" duration="45m" price="32" to="/booking" />
-            <ServiceCard title="Beard & Shave" description="Beard shaping with hot towel" duration="40m" price="38" to="/booking" />
-            <ServiceCard title="Signature Trim" description="Modern fade with refined edges" duration="50m" price="45" to="/booking" />
-          </div>
-        </div>
-      </section>
-
-      {/* Team Teaser */}
-      <section className="py-12 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <h2 className="text-3xl font-extrabold text-gray-800 mb-6">Meet the Team</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { name:'Alex Rivera', role:'Master Barber' },
-              { name:'Jordan Blake', role:'Barber Surgeon' },
-              { name:'Kai Nakamura', role:'Beard Specialist' },
-            ].map((t)=> (
-              <div key={t.name} className="bg-white rounded-lg shadow p-4 text-center">
-                <div className="h-20 w-20 rounded-full mx-auto mb-3 bg-gradient-to-br from-red-500 to-yellow-600" />
-                <div className="font-semibold">{t.name}</div>
-                <div className="text-sm text-gray-600">{t.role}</div>
+          <h2 className="text-3xl font-extrabold text-gray-800 mb-6">What We Do Best</h2>
+          <div className="grid md:grid-cols-4 gap-6">
+            {features.map((f) => (
+              <div key={f.title} className="bg-gray-50 rounded-xl p-5 shadow-sm flex flex-col items-start justify-between">
+                <div className="flex items-center text-red-600 mb-3">
+                  <Icon name={f.icon} size={24} className="mr-2" />
+                  <span className="font-semibold">{f.title}</span>
+                </div>
+                <p className="text-sm text-gray-600">{f.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Newsletter */}
+      {/* Gallery Preview teaser */}
       <section className="py-12 bg-gradient-to-b from-slate-50 to-white">
-        <div className="max-w-2xl mx-auto px-6 text-center">
-          <h3 className="text-2xl font-semibold text-gray-800 mb-2">Get Updates</h3>
-          <p className="text-gray-600 mb-4">Join our newsletter for grooming tips and exclusive offers.</p>
-          <form className="flex justify-center" onSubmit={(e)=>{ e.preventDefault(); }}>
-            <input className="border rounded-l-md px-4 py-2 w-72" placeholder="Your email" />
-            <button className="bg-red-600 text-white px-4 py-2 rounded-r-md" type="submit">Subscribe</button>
-          </form>
+        <div className="max-w-7xl mx-auto px-6">
+          <h2 className="text-3xl font-extrabold text-gray-800 mb-6">Gallery Preview</h2>
+          <div className="grid md:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="aspect-w-4 aspect-h-3 rounded-lg shadow-lg overflow-hidden bg-gray-200">
+                <img src={`https://picsum.photos/600/450?random=${i}`} alt={`Gallery ${i}`} className="w-full h-full object-cover" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Team teaser */}
+      <section className="py-12 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <h2 className="text-3xl font-extrabold text-gray-800 mb-6">Meet the Team</h2>
+          <div className="grid md:grid-cols-4 gap-6 items-stretch">
+            {[
+              { name: 'Alex Rivera', role: 'Master Barber' },
+              { name: 'Jordan Blake', role: 'Barber Surgeon' },
+              { name: 'Kai Nakamura', role: 'Beard Specialist' },
+              { name: 'Mason Lee', role: 'Cut Specialist' },
+            ].map((t) => (
+              <div key={t.name} className="bg-white rounded-lg shadow p-4 flex-1 flex flex-col items-center text-center">
+                <div className="h-20 w-20 rounded-full bg-gradient-to-br from-red-500 to-yellow-600 mb-3" />
+                <div className="font-semibold">{t.name}</div>
+                <div className="text-sm text-gray-600">{t.role}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
     </div>
