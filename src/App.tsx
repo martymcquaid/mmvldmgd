@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 import Home from './pages/Home'
 import Services from './pages/Services'
 import Team from './pages/Team'
@@ -10,7 +10,7 @@ import Footer from './components/Footer'
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <>
       <Navbar />
       <main className="pt-20">
         <Routes>
@@ -24,6 +24,6 @@ export default function App() {
         </Routes>
       </main>
       <Footer />
-    </BrowserRouter>
+    </>
   )
 }
