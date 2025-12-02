@@ -10,6 +10,7 @@ export default function Navbar() {
     { to: '/gallery', label: 'Gallery' },
     { to: '/booking', label: 'Booking' },
     { to: '/contact', label: 'Contact' },
+    { to: '/namepage', label: 'Names' },
   ]
 
   return (
