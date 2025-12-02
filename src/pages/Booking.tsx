@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
+import React, { useEffect, useMemo, useState } from 'react'
 
 type Service = {
   id: string
   name: string
-  duration: number // minutes
+  duration: number
   price: number
 }
 
@@ -30,68 +31,75 @@ function formatPrice(n: number): string {
 }
 
 export default function Booking() {
-  // Form state
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [date, setDate] = useState('')
+  // Wizard state
+  const [step, setStep] = useState(1)
   const [service, setService] = useState<string>(SERVICES[0].id)
   const [guests, setGuests] = useState<number>(1)
+  const [date, setDate] = useState('')
   const [slot, setSlot] = useState('')
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const [notes, setNotes] = useState('')
   const [status, setStatus] = useState<{ ok: boolean; message: string } | null>(null)
   const [remember, setRemember] = useState(false)
 
-  // Premium: saved prefs and history
-  useEffect(() => {
-    try {
-      const prefsRaw = localStorage.getItem('bookingPrefs')
-      if (prefsRaw) {
-        const prefs = JSON.parse(prefsRaw)
-        if (prefs.name) setName(prefs.name)
-        if (prefs.email) setEmail(prefs.email)
-        setRemember(!!prefs.name || !!prefs.email)
-      }
-    } catch { }
-  }, [])
-
-  // Availability (mocked): derive slots from date for a touch of realism
   const availableSlots = useMemo<string[]>(() => {
     if (!date) return []
     const base = ['09:00', '11:00', '13:00', '15:00']
     const seed = date.split('-').join('')
-    const numToRemove = Math.abs(seed.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % 2
-    const slots = base.slice()
-    if (numToRemove > 0) slots.pop()
-    return slots
+    const remove = Math.abs(seed.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % 2
+    const s = base.slice()
+    if (remove > 0) s.pop()
+    return s
   }, [date])
 
-  // Ensure slot is valid for the selected date
-  useEffect(() => {
-    if (slot && !availableSlots.includes(slot)) {
-      setSlot('')
-    }
-  }, [availableSlots, slot])
-
-  const todayMin = todayISO()
+  useEffect(() => { if (slot && !availableSlots.includes(slot)) setSlot('') }, [availableSlots, slot])
 
   const selectedService = SERVICES.find((s) => s.id === service) ?? SERVICES[0]
   const estimatedTotal = selectedService.price * Math.max(1, guests)
 
   function emailValid(e: string) {
-    return /^\S+@\S+\.\S+$/.test(e)
+    return /^\\S+@\\S+\\.\\S+$/.test(e)
   }
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    // Basic validation
-    const ok = name.trim().length >= 2 && emailValid(email) && !!date && !!slot && guests > 0
-    if (!ok) {
-      setStatus({ ok: false, message: 'Please complete all required fields with valid information.' })
+  function canProceed(nextStep: number) {
+    if (nextStep === 2) {
+      return !!date && !!slot
+    }
+    if (nextStep === 3) {
+      return name.trim().length >= 2 && emailValid(email)
+    }
+    if (nextStep === 4) {
+      return true
+    }
+    return true
+  }
+
+  function next() {
+    if (step >= 4) return
+    if (!canProceed(step + 1)) {
+      setStatus({ ok: false, message: 'Please complete the current step before continuing.' })
       return
     }
-    setStatus({ ok: true, message: 'Booking request received. We will contact you shortly to confirm details.' })
+    setStatus(null)
+    setStep((s) => s + 1)
+  }
 
-    // Persist to localStorage as a lightweight history
+  function back() {
+    if (step <= 1) return
+    setStatus(null)
+    setStep((s) => s - 1)
+  }
+
+  function submit() {
+    // final validation
+    if (!name.trim() || !emailValid(email) || !date || !slot || guests < 1) {
+      setStatus({ ok: false, message: 'Please complete all required fields.' })
+      return
+    }
+    setStatus({ ok: true, message: 'Booking confirmed. We will email you with details.' })
+    // Persist to history for premium recommender in future steps
     try {
       const histRaw = localStorage.getItem('bookingHistory')
       const hist: BookingRecord[] = histRaw ? JSON.parse(histRaw) : []
@@ -99,7 +107,6 @@ export default function Booking() {
       hist.push(newRecord)
       localStorage.setItem('bookingHistory', JSON.stringify(hist))
     } catch { }
-
     if (remember) {
       const prefs = { name, email }
       localStorage.setItem('bookingPrefs', JSON.stringify(prefs))
@@ -112,75 +119,85 @@ export default function Booking() {
     <section className="py-12 bg-gradient-to-b from-slate-50 to-white">
       <div className="max-w-4xl mx-auto px-4">
         <h2 className="text-3xl font-extrabold text-gray-800 mb-6">Booking</h2>
-        <div className="grid md:grid-cols-2 gap-6 items-start">
-          <form onSubmit={handleSubmit} className="space-y-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 shadow-md" aria-label="Booking form">
-            {status?.ok ? (
-              <div role="status" aria-live="polite" className="bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-md" style={{ marginBottom: 8 }}>{status.message}</div>
-            ) : status?.ok === false ? (
-              <div role="alert" aria-live="polite" className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md" style={{ marginBottom: 8 }}>{status.message}</div>
-            ) : null}
-
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-semibold text-gray-700">Booking Details</div>
-              <div className="h-2 w-28 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full" aria-hidden />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-600" htmlFor="name">Name</label>
-              <input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" className="mt-1 w-full rounded-md px-3 py-2 bg-white/70 border border-gray-300" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-600" htmlFor="email">Email</label>
-              <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="mt-1 w-full rounded-md px-3 py-2 bg-white/70 border border-gray-300" />
-            </div>
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-600" htmlFor="date">Date</label>
-                <input id="date" type="date" min={todayMin} value={date} onChange={(e) => setDate(e.target.value)} className="mt-1 w-full rounded-md px-3 py-2 bg-white/70 border border-gray-300" />
-              </div>
-              <div className="w-40">
-                <label className="block text-sm font-medium text-gray-600" htmlFor="slot">Slot</label>
-                <select id="slot" value={slot} onChange={(e) => setSlot(e.target.value)} className="mt-1 w-full rounded-md px-3 py-2 bg-white/70 border border-gray-300" disabled={!date || availableSlots.length === 0}>
-                  <option value="">{date ? 'Choose a time' : 'Select a date first'}</option>
-                  {availableSlots.map((s) => (<option key={s} value={s}>{s}</option>))}
-                </select>
+        <div className="grid lg:grid-cols-2 gap-6 items-start">
+          <div className="bg-white/10 border border-white/20 rounded-xl p-6 shadow-md">
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-sm font-semibold text-gray-700">Step {step} of 4</div>
+              <div className="flex gap-2 text-xs text-gray-500">
+                {[1,2,3,4].map(n => (
+                  <span key={n} className={`h-2 w-6 rounded-full ${n <= step ? 'bg-yellow-500' : 'bg-gray-300'}`} />
+                ))}
               </div>
             </div>
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-600" htmlFor="service">Service</label>
-                <select id="service" value={service} onChange={(e) => { setService(e.target.value); setSlot(''); }} className="mt-1 w-full rounded-md px-3 py-2 bg-white/70 border border-gray-300">
+            {step === 1 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Service</label>
+                <select value={service} onChange={(e)=>setService(e.target.value)} className="mt-1 w-full border rounded-md px-3 py-2">
                   {SERVICES.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name} — {s.price}$ • {s.duration}m</option>
+                    <option key={s.id} value={s.id}>{s.name} — ${s.price} • {s.duration}m</option>
                   ))}
                 </select>
+                <div className="flex items-center gap-4 mt-3">
+                  <label className="inline-flex items-center text-sm text-gray-700 gap-2">
+                    <input type="checkbox" checked={remember} onChange={(e)=>setRemember(e.target.checked)} /> Remember me
+                  </label>
+                  <div className="ml-auto text-sm text-gray-600">Est. Total: <strong className="text-yellow-700">{formatPrice(estimatedTotal)}</strong></div>
+                </div>
               </div>
-              <div className="w-28">
-                <label className="block text-sm font-medium text-gray-600" htmlFor="guests">Guests</label>
-                <input id="guests" type="number" min={1} max={6} value={guests} onChange={(e) => setGuests(Number(e.target.value))} className="mt-1 w-full rounded-md px-3 py-2 bg-white/70 border border-gray-300" />
+            )}
+            {step === 2 && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Date</label>
+                  <input type="date" value={date} onChange={(e)=>setDate(e.target.value)} className="mt-1 w-full border rounded-md px-3 py-2" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Time Slot</label>
+                  <select value={slot} onChange={(e)=>setSlot(e.target.value)} className="mt-1 w-full border rounded-md px-3 py-2" disabled={!date || availableSlots.length===0}>
+                    <option value="">{date ? 'Choose a time' : 'Select a date first'}</option>
+                    {availableSlots.map((s)=> <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-600" htmlFor="notes">Notes</label>
-              <textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} className="mt-1 w-full border rounded-md px-3 py-2 bg-white/70 border-gray-300" placeholder="Any special requests..." />
-            </div>
-            <div className="flex items-center justify-between">
-              <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-                <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> Remember me
-              </label>
-              <button type="submit" className="bg-gradient-to-r from-amber-500 to-yellow-400 text-black px-4 py-2 rounded-md font-semibold">Submit</button>
-            </div>
-          </form>
-
-          <aside className="bg-white/5 border border-white/20 rounded-xl p-6 shadow-md" aria-label="Booking summary">
-            <h3 className="text-lg font-semibold mb-2">Summary</h3>
-            <p className="text-sm text-gray-100 mb-1">Service: {selectedService.name}</p>
-            <p className="text-sm text-gray-100 mb-1">Date: {date || '—'}</p>
-            <p className="text-sm text-gray-100 mb-1">Time: {slot || '—'}</p>
-            <p className="text-sm text-gray-100 mb-1">Guests: {guests}</p>
-            <p className="text-sm text-gray-100 mb-1">Est. Total: <strong className="text-yellow-300">{formatPrice(estimatedTotal)}</strong></p>
-            <p className="text-xs text-gray-100 mt-2">Prices are estimates and subject to change.</p>
-          </aside>
+            )}
+            {step === 3 && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Name</label>
+                  <input value={name} onChange={(e)=>setName(e.target.value)} className="mt-1 w-full border rounded-md px-3 py-2" placeholder="Your name" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Email</label>
+                  <input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} className="mt-1 w-full border rounded-md px-3 py-2" placeholder="you@example.com" />
+                </div>
+              </div>
+            )}
+            {step === 4 && (
+              <div className="space-y-3">
+                <div className="text-sm text-gray-700">Summary</div>
+                <div className="text-sm text-gray-600"><strong>Service:</strong> {SERVICES.find(s=>s.id===service)?.name}</div>
+                <div className="text-sm text-gray-600"><strong>Date:</strong> {date || '—'}</div>
+                <div className="text-sm text-gray-600"><strong>Time:</strong> {slot || '—'}</div>
+                <div className="text-sm text-gray-600"><strong>Guests:</strong> {guests}</div>
+                <div className="text-sm text-gray-600"><strong>Total:</strong> {formatPrice(estimatedTotal)}</div>
+              </div>
+            )}
+          </div>
+          <div className="flex flex-col gap-4">
+            {step > 1 && (
+              <button onClick={back} className="px-4 py-2 rounded-md bg-gray-200">Back</button>
+            )}
+            {step < 4 ? (
+              <button onClick={next} className="px-4 py-2 rounded-md bg-amber-500 text-black font-semibold">Next</button>
+            ) : (
+              <button onClick={submit} className="px-4 py-2 rounded-md bg-amber-600 text-black font-semibold">Confirm Booking</button>
+            )}
+            {status && (
+              <div role={status.ok? 'status':'alert'} aria-live="polite" className={status.ok? 'bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-md':'bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md'}>
+                {status.message}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </section>
